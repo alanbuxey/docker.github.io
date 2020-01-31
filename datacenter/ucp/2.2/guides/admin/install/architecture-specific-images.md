@@ -1,7 +1,7 @@
 ---
 title: Architecture-specific images
 description: Learn how to use images that are specific to particular hardware architectures in Docker Universal Control Plane.
-keywords: UCP, Docker EE, image, IBM z, Windows
+keywords: UCP, Docker Enterprise, image, IBM z, Windows
 ---
 
 Docker Universal Control Plane deploys images for a number of different
@@ -24,7 +24,8 @@ docker container run --rm \
   -v /var/run/docker.sock:/var/run/docker.sock \
   --log-driver none \
   {{ page.ucp_org }}/{{ page.ucp_repo }}:{{ page.ucp_version }}${_ARCH} \
-  support > docker-support.tgz
+  support > \
+  docker-support-${HOSTNAME}-$(date +%Y%m%d-%H_%M_%S).tgz
 ```
 
 In this example, the environment variable is named `_ARCH`, but you can use any 

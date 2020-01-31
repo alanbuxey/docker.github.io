@@ -3,6 +3,7 @@ description: Engine
 keywords: Engine
 redirect_from:
 - /engine/misc/
+- /engine/ce-ee-node-activate/
 title: About Docker Engine
 ---
 
@@ -98,8 +99,8 @@ on the separate [Release Notes page](/release-notes)
 As changes are made to Docker there may be times when existing features
 need to be removed or replaced with newer features. Before an existing
 feature is removed it is labeled as "deprecated" within the documentation
-and remains in Docker for at least 3 stable releases. After that time it may be
-removed.
+and remains in Docker for at least 3 stable releases unless specified
+explicitly otherwise. After that time it may be removed.
 
 Users are expected to take note of the list of deprecated features each
 release and plan their migration away from those features, and (if applicable)

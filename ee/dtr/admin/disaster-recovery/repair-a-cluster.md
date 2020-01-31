@@ -6,6 +6,8 @@ redirect_from:
   - /datacenter/dtr/2.5/guides/admin/disaster-recovery/repair-a-cluster/
 ---
 
+>{% include enterprise_label_shortform.md %}
+
 For a DTR cluster to be healthy, a majority of its replicas (n/2 + 1) need to
 be healthy and be able to communicate with the other replicas. This is known
 as maintaining quorum.
@@ -45,7 +47,7 @@ It also reconfigures DTR removing all other nodes from the cluster, leaving DTR
 as a single-replica cluster with the replica you chose.
 
 Start by finding the ID of the DTR replica that you want to repair from.
-You can find the list of replicas by navigating to the UCP web UI, or by using
+You can find the list of replicas by navigating to **Shared Resources > Stacks** or **Swarm > Volumes** (when using [swarm mode](/engine/swarm/)) on the UCP web interface, or by using
 a UCP client bundle to run:
 
 {% raw %}
@@ -54,6 +56,15 @@ docker ps --format "{{.Names}}" | grep dtr
 
 # The list of DTR containers with <node>/<component>-<replicaID>, e.g.
 # node-1/dtr-api-a1640e1c15b6
+```
+{% endraw %}
+
+Another way to determine the replica ID is to SSH into a DTR node and run the following:
+
+{% raw %}
+```bash
+REPLICA_ID=$(docker inspect -f '{{.Name}}' $(docker ps -q -f name=dtr-rethink) | cut -f 3 -d '-')
+&& echo $REPLICA_ID
 ```
 {% endraw %}
 

@@ -4,57 +4,59 @@ description: Set up UCP deployments by using a configuration file.
 keywords: Docker EE, UCP, configuration, config
 ---
 
-Override the default UCP settings by providing a configuration file when you
-create UCP manager nodes. This is useful for scripted installations.
+>{% include enterprise_label_shortform.md %}
 
-## UCP configuration file
+There are two ways to configure UCP:
+- through the web interface, or
+- by importing and exporting the UCP config in a TOML file. For more information about TOML, see the [TOML README on GitHub](https://github.com/toml-lang/toml/blob/master/README.md).
 
-The `ucp-agent` service uses a configuration file to set up UCP.
+You can customize the UCP installation by creating a configuration file at the
+time of installation. During the installation, UCP detects and starts using the
+configuration specified in this file.
+
+## The UCP configuration file
+
 You can use the configuration file in different ways to set up your UCP
 cluster.
 
-- Install one cluster and use the UCP web UI to configure it as desired,
-  extract the configuration file, edit it as needed, and use the edited
-  config file to make copies to multiple other cluster.
-- Install a UCP cluster, extract and edit the configuration file, and use the
-  CLI to apply the new configuration to the same cluster.
+- Install one cluster and use the UCP web interface to configure it as desired,
+  export the configuration file, edit it as needed, and then import the edited
+  configuration file into multiple other clusters.
+- Install a UCP cluster, export and edit the configuration file, and then use the
+  API to import the new configuration into the same cluster.
 - Run the `example-config` command, edit the example configuration file, and
-  apply the file at install time or after installation.
+  set the configuration at install time or import after installation.
 
 Specify your configuration settings in a TOML file.
-[Learn about Tom's Obvious, Minimal Language](https://github.com/toml-lang/toml/blob/master/README.md).
 
-The configuration has a versioned naming convention, with a trailing decimal
-number that increases with each version, like `com.docker.ucp.config-1`. The
-`ucp-agent` service maps the configuration to the file at `/etc/ucp/ucp.toml`.
+## Export and modify an existing configuration
 
-## Inspect and modify existing configuration
+Use the `config-toml` API to export the current settings and write them to a file. Within the directory of a UCP admin user's [client certificate bundle](../../user-access/cli.md), the following command exports the current configuration for the UCP hostname `UCP_HOST` to a file named `ucp-config.toml`:
 
-Use the `docker config inspect` command to view the current settings and emit
-them to a file.
+### Get an authtoken
 
-```bash
-{% raw %}
-# CURRENT_CONFIG_NAME will be the name of the currently active UCP configuration
-CURRENT_CONFIG_NAME=$(docker service inspect ucp-agent --format '{{range .Spec.TaskTemplate.ContainerSpec.Configs}}{{if eq "/etc/ucp/ucp.toml" .File.Name}}{{.ConfigName}}{{end}}{{end}}')
-# Collect the current config with `docker config inspect`
-docker config inspect --format '{{ printf "%s" .Spec.Data }}' $CURRENT_CONFIG_NAME > ucp-config.toml
-{% endraw %}
+```
+AUTHTOKEN=$(curl --silent --insecure --data '{"username":"<username>","password":"<password>"}' https://UCP_HOST/auth/login | jq --raw-output .auth_token)
 ```
 
-Edit the file, then use the `docker config create` and `docker service update`
-commands to create and apply the configuration from the file.
+### Download config file
 
-
-```bash
-# NEXT_CONFIG_NAME will be the name of the new UCP configuration
-NEXT_CONFIG_NAME=${CURRENT_CONFIG_NAME%%-*}-$((${CURRENT_CONFIG_NAME##*-}+1))
-# Create the new cluster configuration from the file ucp-config.toml
-docker config create $NEXT_CONFIG_NAME  ucp-config.toml
-# Use the `docker service update` command to remove the current configuration
-# and apply the new configuration to the `ucp-agent` service.
-docker service update --config-rm $CURRENT_CONFIG_NAME --config-add source=$NEXT_CONFIG_NAME,target=/etc/ucp/ucp.toml ucp-agent
 ```
+curl -X GET "https://UCP_HOST/api/ucp/config-toml" -H  "accept: application/toml" -H  "Authorization: Bearer $AUTHTOKEN" > ucp-config.toml
+```
+
+### Upload config file
+
+```
+curl -X PUT -H  "accept: application/toml" -H "Authorization: Bearer $AUTHTOKEN" --upload-file 'path/to/ucp-config.toml' https://UCP_HOST/api/ucp/config-toml
+```
+
+## Apply an existing configuration file at install time
+You can configure UCP to import an existing configuration file at install time. To do this using the **Configs** feature of Docker Swarm, follow these steps.
+
+1. Create a **Docker Swarm Config** object with a name of `com.docker.ucp.config` and the TOML value of your UCP configuration file contents.
+2. When installing UCP on that cluster, specify the `--existing-config` flag to have the installer use that object for its initial configuration.
+3. After installation, delete the `com.docker.ucp.config` object.
 
 ## Example configuration file
 
@@ -65,14 +67,9 @@ settings. From the command line, run UCP with the `example-config` option:
 docker container run --rm {{ page.ucp_org }}/{{ page.ucp_repo }}:{{ page.ucp_version }} example-config
 ```
 
+## Configuration options
 
-## Configuration file and web UI
-
-Admin users can open the UCP web UI, navigate to **Admin Settings**,
-and change UCP settings there. In most cases, the web UI is a front end
-for modifying this config file.
-
-## auth table
+### auth table
 
 | Parameter               | Required | Description                                                                                                                                                                          |
 |:------------------------|:---------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -80,79 +77,16 @@ for modifying this config file.
 | `default_new_user_role` | no       | The role that new users get for their private resource sets. Values are `admin`, `viewonly`, `scheduler`, `restrictedcontrol`, or `fullcontrol`. The default is `restrictedcontrol`. |
 
 
-## auth.sessions
+### auth.sessions
 
-| Parameter                   | Required | Description                                                                                                                                                                                                                                                                             |
-|:----------------------------|:---------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `lifetime_minutes`          | no       | The initial session lifetime, in minutes. The default is 4320, which is 72 hours.                                                                                                                                                                                                       |
-| `renewal_threshold_minutes` | no       | The length of time, in minutes, before the expiration of a session where, if used, a session will be extended by the current configured lifetime from then. A zero value disables session extension. The default is 1440, which is 24 hours.                                            |
-| `per_user_limit`            | no       | The maximum number of sessions that a user can have active simultaneously. If creating a new session would put a user over this limit, the least recently used session will be deleted. A value of zero disables limiting the number of sessions that users may have. The default is 5. |
+| Parameter                   | Required | Description                                                                                                                                                                                                                                                                              |
+|:----------------------------|:---------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `lifetime_minutes`          | no       | The initial session lifetime, in minutes. The default is 60 minutes.                                                                                                                                                                                                                     |
+| `renewal_threshold_minutes` | no       | The length of time, in minutes, before the expiration of a session where, if used, a session will be extended by the current configured lifetime from then. A zero value disables session extension. The default is 20 minutes.                                                          |
+| `per_user_limit`            | no       | The maximum number of sessions that a user can have active simultaneously. If creating a new session would put a user over this limit, the least recently used session will be deleted. A value of zero disables limiting the number of sessions that users may have. The default is 10. |
+| `store_token_per_session` | no | If set, the user token is stored in `sessionStorage` instead of `localStorage`. Note that this option will log the user out and require them to log back in since they are actively changing how their authentication is stored. |
 
-## auth.ldap (optional)
-
-| Parameter               | Required | Description                                                                                                                                                                      |
-|:------------------------|:---------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `server_url`            | no       | The URL of the LDAP server.                                                                                                                                                      |
-| `no_simple_pagination`  | no       | Set to `true` if the LDAP server doesn't support the Simple Paged Results control extension (RFC 2696). The default is `false`.                                                  |
-| `start_tls`             | no       | Set to `true` to use StartTLS to secure the connection to the server, ignored if the server URL scheme is 'ldaps://'. The default is `false`.                                    |
-| `root_certs`            | no       | A root certificate PEM bundle to use when establishing a TLS connection to the server.                                                                                           |
-| `tls_skip_verify`       | no       | Set to `true` to skip verifying the server's certificate when establishing a TLS connection, which isn't recommended unless testing on a secure network. The default is `false`. |
-| `reader_dn`             | no       | The distinguished name the system uses to bind to the LDAP server when performing searches.                                                                                      |
-| `reader_password`       | no       | The password that the system uses to bind to the LDAP server when performing searches.                                                                                           |
-| `sync_schedule`         | no       | The scheduled time for automatic LDAP sync jobs, in CRON format. Needs to have the seconds field set to zero. The default is @hourly if empty or omitted.                        |
-| `jit_user_provisioning` | no       | Whether to only create user accounts upon first login (recommended). The default is `true`.                                                                                      |
-
-
-## auth.ldap.additional_domains array (optional)
-
-A list of additional LDAP domains and corresponding server configs from which
-to sync users and team members. This is an advanced feature which most
-environments don't need.
-
-| Parameter              | Required | Description                                                                                                                                                                                                                                                                 |
-|:-----------------------|:---------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `domain`               | no       | The root domain component of this server, for example, `dc=example,dc=com`. A longest-suffix match of the base DN for LDAP searches is used to select which LDAP server to use for search requests. If no matching domain is found, the default LDAP server config is used. |
-| `server_url`           | no       | The URL of the LDAP server for the current additional domain.                                                                                                                                                                                                               |
-| `no_simple_pagination` | no       | Set to true if the LDAP server for this additional domain does not support the Simple Paged Results control extension (RFC 2696). The default is `false`.                                                                                                                   |
-| `server_url`           | no       | The URL of the LDAP server.                                                                                                                                                                                                                                                 |
-| `start_tls`            | no       | Whether to use StartTLS to secure the connection to the server, ignored if the server URL scheme is 'ldaps://'.                                                                                                                                                             |
-| `root_certs`           | no       | A root certificate PEM bundle to use when establishing a TLS connection to the server for the current additional domain.                                                                                                                                                    |
-| `tls_skip_verify`      | no       | Whether to skip verifying the additional domain server's certificate when establishing a TLS connection, not recommended unless testing on a secure network. The default is `true`.                                                                                         |
-| `reader_dn`            | no       | The distinguished name the system uses to bind to the LDAP server when performing searches under the additional domain.                                                                                                                                                     |
-| `reader_password`      | no       | The password that the system uses to bind to the LDAP server when performing searches under the additional domain.                                                                                                                                                          |
-
-## auth.ldap.user_search_configs array (optional)
-
-Settings for syncing users.
-
-| Parameter                 | Required | Description                                                                                                                                                                                                                                                                              |
-|:--------------------------|:---------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `base_dn`                 | no       | The distinguished name of the element from which the LDAP server will search for users, for example, `ou=people,dc=example,dc=com`.                                                                                                                                                      |
-| `scope_subtree`           | no       | Set to `true` to search for users in the entire subtree of the base DN. Set to `false` to search only one level under the base DN. The default is `false`.                                                                                                                               |
-| `username_attr`           | no       | The name of the attribute of the LDAP user element which should be selected as the username. The default is `uid`.                                                                                                                                                                       |
-| `full_name_attr`          | no       | The name of the attribute of the LDAP user element which should be selected as the full name of the user. The default is `cn`.                                                                                                                                                           |
-| `filter`                  | no       | The LDAP search filter used to select user elements, for example, `(&(objectClass=person)(objectClass=user))`. May be left blank.                                                                                                                                                        |
-| `match_group`             | no       | Whether to additionally filter users to those who are direct members of a group. The default is `true`.                                                                                                                                                                                  |
-| `match_group_dn`          | no       | The distinguished name of the LDAP group, for example, `cn=ddc-users,ou=groups,dc=example,dc=com`. Required if `matchGroup` is `true`.                                                                                                                                                   |
-| `match_group_member_attr` | no       | The name of the LDAP group entry attribute which corresponds to distinguished names of members. Required if `matchGroup` is `true`. The default is `member`.                                                                                                                             |
-| `match_group_iterate`     | no       | Set to `true` to get all of the user attributes by iterating through the group members and performing a lookup for each one separately. Use this instead of searching users first, then applying the group selection filter. Ignored if `matchGroup` is `false`. The default is `false`. |
-
-## auth.ldap.admin_sync_opts (optional)
-
-Settings for syncing system admininistrator users.
-
-| Parameter              | Required | Description                                                                                                                                                                                               |
-|:-----------------------|:---------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `enable_sync`          | no       | Set to `true` to enable syncing admins. If `false`, all other fields in this table are ignored. The default is `true`.                                                                                    |
-| `select_group_members` | no       | Set to `true` to sync using a group DN and member attribute selection. Set to `false` to use a search filter. The default is `true`.                                                                      |
-| `group_dn`             | no       | The distinguished name of the LDAP group, for example, `cn=ddc-admins,ou=groups,dc=example,dc=com`. Required if `select_group_members` is `true`.                                                         |
-| `group_member_attr`    | no       | The name of the LDAP group entry attribute which corresponds to distinguished names of members. Required if `select_group_members` is `true`. The default is `member`.                                    |
-| `search_base_dn`       | no       | The distinguished name of the element from which the LDAP server will search for users, for example, `ou=people,dc=example,dc=com`. Required if `select_group_members` is `false`.                        |
-| `search_scope_subtree` | no       | Set to `true` to search for users in the entire subtree of the base DN. Set to `false` to search only one level under the base DN. The default is `false`. Required if `select_group_members` is `false`. |
-| `search_filter`        | no       | The LDAP search filter used to select users if `select_group_members` is `false`, for example, `(memberOf=cn=ddc-admins,ou=groups,dc=example,dc=com)`. May be left blank.                                 |
-
-
-## registries array (required)
+### registries array (optional)
 
 An array of tables that specifies the DTR instances that the current UCP instance manages.
 
@@ -160,18 +94,32 @@ An array of tables that specifies the DTR instances that the current UCP instanc
 |:---------------|:---------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `host_address` | yes      | The address for connecting to the DTR instance tied to this UCP cluster.                                                                                                                    |
 | `service_id`   | yes      | The DTR instance's OpenID Connect Client ID, as registered with the Docker authentication provider.                                                                                         |
-| `ca_bundle`    | no       | If you're using a custom certificate authority (CA), the `ca_bundle` setting specifies the root CA bundle for the DTR instance. The value is a string with the contents of a `ca.pem` file. |
+| `ca_bundle`    | no       | If you're using a custom certificate authority (CA), `ca_bundle` specifies the root CA bundle for the DTR instance. The value is a string with the contents of a `ca.pem` file. |
 
-## scheduling_configuration table (optional)
+
+### audit_log_configuration table (optional)
+Configures audit logging options for UCP components.
+
+| Parameter      | Required | Description                                                                                                                                                                                 |
+|:---------------|:---------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `level`        | no       | Specify the audit logging level. Leave empty for disabling audit logs (default). Other legal values are `metadata` and `request`. |
+| `support_dump_include_audit_logs` | no | When set to true, support dumps will include audit logs in the logs of the `ucp-controller` container of each manager node. The default is `false`. |
+
+
+### scheduling_configuration table (optional)
 
 Specifies scheduling options and the default orchestrator for new nodes.
+
+> Note
+>
+> If you run the `kubectl` command, such as `kubectl describe nodes`, to view scheduling rules on Kubernetes nodes, it does not reflect what is configured in UCP Admin settings. UCP uses taints to control container scheduling on nodes and is unrelated to kubectl's `Unschedulable` boolean flag.
 
 | Parameter                     | Required | Description                                                                                                                                |
 |:------------------------------|:---------|:-------------------------------------------------------------------------------------------------------------------------------------------|
 | `enable_admin_ucp_scheduling` | no       | Set to `true` to allow admins to schedule on containers on manager nodes. The default is `false`.                                          |
 | `default_node_orchestrator`   | no       | Sets the type of orchestrator to use for new nodes that are joined to the cluster. Can be `swarm` or `kubernetes`. The default is `swarm`. |
 
-## tracking_configuration table (optional)
+### tracking_configuration table (optional)
 
 Specifies the analytics data that UCP collects.
 
@@ -180,8 +128,9 @@ Specifies the analytics data that UCP collects.
 | `disable_usageinfo`  | no       | Set to `true` to disable analytics of usage information. The default is `false`.        |
 | `disable_tracking`   | no       | Set to `true` to disable analytics of API call information. The default is `false`.     |
 | `anonymize_tracking` | no       | Anonymize analytic data. Set to `true` to hide your license ID. The default is `false`. |
+| `cluster_label`      | no       | Set a label to be included with analytics/                                              |
 
-## trust_configuration table (optional)
+### trust_configuration table (optional)
 
 Specifies whether DTR images require signing.
 
@@ -190,7 +139,11 @@ Specifies whether DTR images require signing.
 | `require_content_trust`  | no       | Set to `true` to require images be signed by content trust. The default is `false`. |
 | `require_signature_from` | no       | A string array that specifies users or teams which must sign images.                |
 
-## log_configuration table (optional)
+### log_configuration table (optional)
+
+> Note
+>
+> This feature has been deprecated. Refer to the [Deprecation notice](https://docs.docker.com/ee/ucp/release-notes/#deprecation-notice) for additional information.
 
 Configures the logging options for UCP components.
 
@@ -200,15 +153,40 @@ Configures the logging options for UCP components.
 | `host`     | no       | Specifies a remote syslog server to send UCP controller logs to. If omitted, controller logs are sent through the default docker daemon logging driver from the `ucp-controller` container.     |
 | `level`    | no       | The logging level for UCP components. Values are [syslog priority  levels](https://linux.die.net/man/5/syslog.conf): `debug`, `info`, `notice`, `warning`, `err`, `crit`, `alert`, and `emerg`. |
 
-## license_configuration table (optional)
+### license_configuration table (optional)
 
-Specifies whether the your UCP license is automatically renewed.   
+Specifies whether the your UCP license is automatically renewed.
 
 | Parameter      | Required | Description                                                                                                                                                                                   |
 |:---------------|:---------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `auto_refresh` | no       | Set to `true` to enable attempted automatic license renewal when the license nears expiration. If disabled, you must manually upload renewed license after expiration. The default is `true`. |
 
-## cluster_config table (required)
+### custom headers (optional)
+
+Included when you need to set custom API headers. You can repeat this section multiple times to specify multiple separate headers. If you include custom headers, you must specify both `name` and `value`.
+
+`[[custom_api_server_headers]]`
+
+| Item    | Description                                                                           |
+|:--------|:--------------------------------------------------------------------------------------|
+| `name`  | Set to specify the name of the custom header with `name` = "*X-Custom-Header-Name*".  |
+| `value` | Set to specify the value of the custom header with `value` = "*Custom Header Value*". |
+
+### user_workload_defaults (optional)
+
+A map describing default values to set on Swarm services at creation time if
+those fields are not explicitly set in the service spec.
+
+`[user_workload_defaults]`
+
+  `[user_workload_defaults.swarm_defaults]`
+
+| Parameter                                  | Required | Description                                                                                              |
+|:-------------------------------------------|:---------|:---------------------------------------------------------------------------------------------------------|
+| `[tasktemplate.restartpolicy.delay]`       | no       | Delay between restart attempts (ns&#124;us&#124;ms&#124;s&#124;m&#124;h). The default is `value = "5s"`. |
+| `[tasktemplate.restartpolicy.maxattempts]` | no       | Maximum number of restarts before giving up. The default is  `value = "3"`.                              |
+
+### cluster_config table (required)
 
 Configures the cluster that the current UCP instance manages.
 
@@ -217,36 +195,60 @@ components. Assigning these values overrides the settings in a container's
 `/etc/resolv.conf` file. For more info, see
 [Configure container DNS](/engine/userguide/networking/default_network/configure-dns/).
 
-| Parameter                         | Required | Description                                                                                                                                                                                      |
-|:----------------------------------|:---------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `controller_port`                 | yes      | Configures the port that the `ucp-controller` listens to. The default is `443`.                                                                                                                  |
-| `swarm_port`                      | yes      | Configures the port that the `ucp-swarm-manager` listens to. The default is `2376`.                                                                                                              |
-| `swarm_strategy`                  | no       | Configures placement strategy for container scheduling. This doesn't affect swarm-mode services. Values are `spread`, `binpack`, and `random`.                                                   |
-| `dns`                             | yes      | Array of IP addresses to add as nameservers.                                                                                                                                                     |
-| `dns_opt`                         | yes      | Array of options used by DNS resolvers.                                                                                                                                                          |
-| `dns_search`                      | yes      | Array of domain names to search when a bare unqualified hostname is used inside of a container.                                                                                                  |
-| `profiling_enabled`               | no       | Set to `true` to enable specialized debugging endpoints for profiling UCP performance. The default is `false`.                                                                                   |
-| `kv_timeout`                      | no       | Sets the key-value store timeout setting, in milliseconds. The default is `5000`.                                                                                                                |
-| `kv_snapshot_count`               | no       | Sets the key-value store snapshot count setting. The default is `20000`.                                                                                                                         |
-| `external_service_lb`             | no       | Specifies an optional external load balancer for default links to services with exposed ports in the web UI.                                                                                     |
-| `cni_installer_url`               | no       | Specifies the URL of a Kubernetes YAML file to be used for installing a CNI plugin. Applies only during initial installation. If empty, the default CNI plugin is used.                          |
-| `metrics_retention_time`          | no       | Adjusts the metrics retention time.                                                                                                                                                              |
-| `metrics_scrape_interval`         | no       | Sets the interval for how frequently managers gather metrics from nodes in the cluster.                                                                                                          |
-| `metrics_disk_usage_interval`     | no       | Sets the interval for how frequently storage metrics are gathered. This operation can be expensive when large volumes are present.                                                               |
-| `rethinkdb_cache_size`            | no       | Sets the size of the cache used by UCP's RethinkDB servers. The default is 512MB, but leaving this field empty or specifying `auto` instructs RethinkDB to determine a cache size automatically. |
-| `min_tls_version`                 | no       | Sets the minimum TLS version for the controller to serve. Valid options are `tlsv1`, `tlsv1.0`, `tlsv1.1`, and `tlsv1.2`. An empty string defaults to TLS version 1.0.                           |
-| `local_volume_collection_mapping` | no       | Store data about collections for volumes in UCP's local KV store instead of on the volume labels. This is used for enforcing access control on volumes.                                          |
+| Parameter                              | Required | Description                                                                                                                                                                                      |
+|:---------------------------------------|:---------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `controller_port`                      | yes      | Configures the port that the `ucp-controller` listens to. The default is `443`.                                                                                                                  |
+| `kube_apiserver_port`                  | yes      | Configures the port the Kubernetes API server listens to.                                                                                                                                        |
+| `swarm_port`                           | yes      | Configures the port that the `ucp-swarm-manager` listens to. The default is `2376`.                                                                                                              |
+| `swarm_strategy`                       | no       | Configures placement strategy for container scheduling. This doesn't affect swarm-mode services. Values are `spread`, `binpack`, and `random`.                                                   |
+| `dns`                                  | yes      | Array of IP addresses to add as nameservers.                                                                                                                                                     |
+| `dns_opt`                              | yes      | Array of options used by DNS resolvers.                                                                                                                                                          |
+| `dns_search`                           | yes      | Array of domain names to search when a bare unqualified hostname is used inside of a container.                                                                                                  |
+| `profiling_enabled`                    | no       | Set to `true` to enable specialized debugging endpoints for profiling UCP performance. The default is `false`.                                                                                   |
+| `kv_timeout`                           | no       | Sets the key-value store timeout setting, in milliseconds. The default is `5000`.                                                                                                                |
+| `kv_snapshot_count`                    | no       | Sets the key-value store snapshot count setting. The default is `20000`.                                                                                                                         |
+| `external_service_lb`                  | no       | Specifies an optional external load balancer for default links to services with exposed ports in the web interface.                                                                              |
+| `cni_installer_url`                    | no       | Specifies the URL of a Kubernetes YAML file to be used for installing a CNI plugin. Applies only during initial installation. If empty, the default CNI plugin is used.                          |
+| `metrics_retention_time`               | no       | Adjusts the metrics retention time.                                                                                                                                                              |
+| `metrics_scrape_interval`              | no       | Sets the interval for how frequently managers gather metrics from nodes in the cluster.                                                                                                          |
+| `metrics_disk_usage_interval`          | no       | Sets the interval for how frequently storage metrics are gathered. This operation can be expensive when large volumes are present.                                                               |
+| `rethinkdb_cache_size`                 | no       | Sets the size of the cache used by UCP's RethinkDB servers. The default is 1GB, but leaving this field empty or specifying `auto` instructs RethinkDB to determine a cache size automatically.   |
+| `exclude_server_identity_headers`      | no       | Set to `true` to disable the `X-Server-Ip` and `X-Server-Name` headers.                                                                                                                          |
+| `cloud_provider`                       | no       | Set the cloud provider for the kubernetes cluster.                                                                                                                                               |
+| `pod_cidr`                             | yes      | Sets the subnet pool from which the IP for the Pod should be allocated from the CNI ipam plugin. Default is `192.168.0.0/16`.                                                                    |
+| `calico_mtu`                           | no       | Set the MTU (maximum transmission unit) size for the Calico plugin.                                                                                                                              |
+| `ipip_mtu`                             | no       | Set the IPIP MTU size for the calico IPIP tunnel interface.                                                                                                                                      |
+| `azure_ip_count`                       | no       | Set the IP count for azure allocator to allocate IPs per Azure virtual machine.                                                                                                                  |
+| `service_cluster_ip_range`             | yes      | Sets the subnet pool from which the IP for Services should be allocated. Default is `10.96.0.0/16`.                                                                                              |
+| `nodeport_range`                       | yes      | Set the port range that for Kubernetes services of type NodePort can be exposed in. Default is `32768-35535`.                                                                                    |
+| `custom_kube_api_server_flags`         | no       | Set the configuration options for the Kubernetes API server. (dev)                                                                                                                               |
+| `custom_kube_controller_manager_flags` | no       | Set the configuration options for the Kubernetes controller manager. (dev)                                                                                                                       |
+| `custom_kubelet_flags`                 | no       | Set the configuration options for Kubelets. (dev)                                                                                                                                                |
+| `custom_kube_scheduler_flags`          | no       | Set the configuration options for the Kubernetes scheduler. (dev)                                                                                                                                |
+| `local_volume_collection_mapping`      | no       | Store data about collections for volumes in UCP's local KV store instead of on the volume labels. This is used for enforcing access control on volumes.                                          |
+| `manager_kube_reserved_resources`      | no       | Reserve resources for Docker UCP and Kubernetes components which are running on manager nodes.                                                                                                   |
+| `worker_kube_reserved_resources`       | no       | Reserve resources for Docker UCP and Kubernetes components which are running on worker nodes.                                                                                                    |
+| `kubelet_max_pods`                     | yes      | Set Number of Pods that can run on a node. Default is `110`.                                                                                                                                     |
+| `secure_overlay`                       | no       | Set to `true` to enable IPSec network encryption in Kubernetes. Default is `false`.                                                                                                              |
+| `image_scan_aggregation_enabled`       | no       | Set to `true` to enable image scan result aggregation. This feature displays image vulnerabilities in shared resource/containers and shared resources/images pages. Default is `false`.          |
+| `swarm_polling_disabled`               | no       | Set to `true` to turn off auto-refresh (which defaults to 15 seconds) and only call the Swarm API once. Default is `false`.                                                                      |
 
-## Kubernetes configuration flags
+> Note
+>
+> dev indicates that the functionality is only for development and testing. Arbitrary Kubernetes configuration parameters are not tested and supported under the Docker Enterprise Software Support Agreement.
 
-You can set additional flags on the Kubernetes system components in the
-`cluster_config` table. You must ensure that any custom flags don't
-conflict with configuration options already set by UCP.
+### iSCSI (optional)
+Configures iSCSI options for UCP.
 
-```
-custom_kube_api_server_flags = ["--event-ttl=1h0m0s", "--service-node-port-range=30000-32767"]
-custom_kube_controller_manager_flags = ["--service-sync-period=5m0s"]
-custom_kubelet_flags = ["--http-check-frequency=20s"]
-custom_kube_scheduler_flags = ["--algorithm-provider=DefaultProvider"]
-```
+| Parameter               | Required | Description                                                                                                                                                                          |
+|:------------------------|:---------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--storage-iscsi=true`               | no       | Enables iSCSI based Persistent Volumes in Kubernetes. Default value is `false`.             |
+| `--iscsiadm-path=<path>` | no       | Specifies the path of the iscsiadm binary on the host. Default value is `/usr/sbin/iscsiadm`.  |
+| `--iscsidb-path=<path>` | no       | specifies the path of the iscsi database on the host. Default value is `/etc/iscsi`.  |
 
+### pre_logon_message
+Configures a pre-logon message.
+
+| Parameter               | Required | Description                                                                                                                                                                          |
+|:------------------------|:---------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|  `pre_logon_message` | no | Sets pre-logon message to alert users before they proceed with login. |

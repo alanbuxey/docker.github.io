@@ -2,6 +2,7 @@
 description: Copy files among machines
 keywords: machine, scp, subcommand
 title: docker-machine scp
+hide_from_sitemap: true
 ---
 
 Copy files from your local host to a machine, from machine to machine, or from a
@@ -56,12 +57,12 @@ them. Avoid using relative paths, but specify absolute paths in
 paths both for the location on the Docker daemon and within the container.
 
 For example, imagine you want to transfer your local directory
-`/Users/londoncalling/webapp` to a remote machine and bind mount it into a
+`/Users/<username>/webapp` to a remote machine and bind mount it into a
 container on the remote host. If the remote user is `ubuntu`, use a command like
 this:
 
 ```none
-$ docker-machine scp -r /Users/londoncalling/webapp MACHINE-NAME:/home/ubuntu/webapp
+$ docker-machine scp -r /Users/<username>/webapp MACHINE-NAME:/home/ubuntu/webapp
 ```
 
 Then write a docker-compose file that bind mounts it in:

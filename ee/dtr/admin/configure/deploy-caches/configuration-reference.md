@@ -4,6 +4,8 @@ description: Learn about the different configuration options for DTR caches.
 keywords: DTR, cache
 ---
 
+>{% include enterprise_label_shortform.md %}
+
 DTR caches are based on Docker Registry, and use the same configuration
 file format.
 [Learn more about the configuration options](/registry/configuration.md).
@@ -43,8 +45,7 @@ Below you can find the description for each parameter, specific to DTR caches.
       no
     </td>
     <td>
-The TTL for blobs in the cache. This field takes a positive integer and an optional suffix indicating the unit of time. If
-this field is configured, "storage.delete.enabled" must be configured to true. Possible units are:
+A positive integer and an optional unit of time suffix to determine the TTL (Time to Live) value for blobs in the cache. If <code>blobttl</code> is configured, <code>storage.delete.enabled</code> must be set to <code>true</code>. Acceptable units of time are:
       <ul>
         <li><code>ns</code> (nanoseconds)</li>
         <li><code>us</code> (microseconds)</li>

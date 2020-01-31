@@ -4,6 +4,8 @@ description: Learn how to troubleshoot your Docker Universal Control Plane clust
 keywords: ucp, troubleshoot, health, cluster
 ---
 
+>{% include enterprise_label_shortform.md %}
+
 If you detect problems in your UCP cluster, you can start your troubleshooting
 session by checking the logs of the
 [individual UCP components](../../ucp-architecture.md). Only administrator users can
@@ -20,6 +22,7 @@ containers to be listed as well.
 
 Click on a container to see more details, like its configurations and logs.
 
+![](../../images/troubleshoot-with-logs-2.png){: .with-border}
 
 ## Check the logs from the CLI
 
@@ -61,7 +64,7 @@ specially useful if the UCP web application is not working.
 
 ## Get a support dump
 
-Before making any changes to UCP, download a [support dump](../../get-support.md).
+Before making any changes to UCP, download a [support dump](../../../get-support.md).
 This allows you to troubleshoot problems which were already happening before
 changing UCP configurations.
 
@@ -73,7 +76,7 @@ applications won't be affected by this.
 To increase the UCP log level, navigate to the UCP web UI, go to the
 **Admin Settings** tab, and choose **Logs**.
 
-![](../../images/troubleshoot-with-logs-2.png){: .with-border}
+![](../../images/troubleshoot-with-logs-3.png){: .with-border}
 
 Once you change the log level to **Debug** the UCP containers restart.
 Now that the UCP components are creating more descriptive logs, you can

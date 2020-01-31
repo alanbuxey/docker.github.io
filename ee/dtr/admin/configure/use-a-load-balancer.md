@@ -4,6 +4,8 @@ description: Learn how to configure a load balancer to balance user requests acr
 keywords: dtr, load balancer
 ---
 
+>{% include enterprise_label_shortform.md %}
+
 Once you’ve joined multiple DTR replicas nodes for
 [high-availability](set-up-high-availability.md), you can configure your own
 load balancer to balance user requests across all replicas.
@@ -30,6 +32,12 @@ replicas.
 DTR does not provide a load balancing service. You can use an on-premises
 or cloud-based load balancer to balance requests across multiple DTR replicas.
 
+> Additional load balancer requirements for UCP
+>
+> If you are also using UCP, there are [additional requirements](https://docs.docker.com/ee/ucp/admin/configure/join-nodes/use-a-load-balancer/#load-balancing-ucp-and-dtr) if you plan to load balance both UCP and DTR using the same load balancer. 
+>
+>{: .important}
+
 You can use the unauthenticated `/_ping` endpoint on each DTR replica,
 to check if the replica is healthy and if it should remain in the load balancing
 pool or not.
@@ -37,9 +45,10 @@ pool or not.
 Also, make sure you configure your load balancer to:
 
 * Load balance TCP traffic on ports 80 and 443.
-* Make sure the load balancer is not buffering requests.
-* Make sure the load balancer is forwarding the `Host` HTTP header correctly.
-* Make sure there's no timeout for idle connections, or set it to more than 10 minutes.
+* Not terminate HTTPS connections.
+* Not buffer requests.
+* Forward the `Host` HTTP header correctly.
+* Have no timeout for idle connections, or set it to more than 10 minutes.
 
 The `/_ping` endpoint returns a JSON object for the replica being queried of
 the form:
@@ -121,9 +130,11 @@ global
 defaults
         mode    tcp
         option  dontlognull
-        timeout connect 5000
-        timeout client 50000
-        timeout server 50000
+        timeout connect 5s
+        timeout client 50s
+        timeout server 50s
+        timeout tunnel 1h
+        timeout client-fin 50s
 ### frontends
 # Optional HAProxy Stats Page accessible at http://<host-ip>:8181/haproxy?stats
 frontend dtr_stats

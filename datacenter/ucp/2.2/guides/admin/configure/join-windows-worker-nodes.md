@@ -10,7 +10,7 @@ are supported on Windows, and all manager nodes in the swarm must run on Linux.
 Follow these steps to enable a worker node on Windows.
 
 1.  Install UCP on a Linux distribution.
-2.  Install Docker Enterprise Edition (*Docker EE*) on Windows Server 2016.
+2.  Install Docker Enterprise on Windows Server 2016.
 3.  Configure the Windows node.
 4.  Join the Windows node to the swarm.
 
@@ -18,11 +18,11 @@ Follow these steps to enable a worker node on Windows.
 
 Install UCP on a Linux distribution.
 [Learn how to install UCP on production](../install/index.md).
-UCP requires Docker EE version 17.06 or later.
+UCP requires Docker Enterprise version 17.06 or later.
 
-## Install Docker EE on Windows Server 2016
+## Install Docker Enterprise on Windows Server 2016
 
-[Install Docker EE](/docker-ee-for-windows/install/#using-a-script-to-install-docker-ee)
+[Install Docker Enterprise](/docker-ee-for-windows/install/#using-a-script-to-install-docker-ee)
 on a Windows Server 2016 instance to enable joining a swarm that's managed by
 UCP.
 
@@ -33,6 +33,17 @@ Follow these steps to configure the docker daemon and the Windows environment.
 1.  Pull the Windows-specific image of `ucp-agent`, which is named `ucp-agent-win`.
 2.  Run the Windows worker setup script provided with `ucp-agent-win`.
 3.  Join the swarm with the token provided by the UCP web UI.
+4.  Create a file `daemon.json`.
+5.  Paste following content and save it under `$env:ProgramData\Docker\config\`
+    ```
+    {
+    "labels": ["os=windows"]
+    }
+    ``` 
+6.  Restart the docker service.
+    ```
+    Restart-Service docker
+    ```
 
 ### Pull the Windows-specific images
 
@@ -126,7 +137,7 @@ docker container run --rm {{ page.ucp_org }}/ucp-agent-win:{{ page.ucp_version }
 
 ### Open ports in the Windows firewall
 
-UCP and Docker EE require that ports 2376 and 12376 are open for inbound
+UCP and Docker Enterprise require that ports 2376 and 12376 are open for inbound
 TCP traffic.
 
 In a PowerShell terminal running as Administrator, run these commands

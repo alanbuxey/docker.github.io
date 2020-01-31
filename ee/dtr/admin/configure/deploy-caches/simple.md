@@ -1,9 +1,11 @@
 ---
-title: Deploy a DTR cache
+title: Deploy a DTR cache with Swarm
 description: Deploy a DTR cache to make users in remove geographical locations
   pull images faster.
 keywords: DTR, cache
 ---
+
+>{% include enterprise_label_shortform.md %}
 
 This example guides you in deploying a DTR cache, assuming that you've got
 a DTR deployment up and running. It also assumes that you've provisioned

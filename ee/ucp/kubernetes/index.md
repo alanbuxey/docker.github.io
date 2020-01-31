@@ -6,6 +6,8 @@ redirect_from:
   - /ee/ucp/user/services/deploy-kubernetes-workload/
 ---
 
+>{% include enterprise_label_shortform.md %}
+
 The Docker EE web UI enables deploying your Kubernetes YAML files. In most
 cases, no modifications are necessary to deploy on a cluster that's managed by
 Docker EE.
@@ -102,7 +104,8 @@ The service connects the cluster's internal port 80 to the external port
 
 The YAML definition connects the service to the NGINX server by using the
 app label `nginx` and a corresponding label selector.
-[Learn about using a service to expose your app](https://v1-8.docs.kubernetes.io/docs/tutorials/kubernetes-basics/expose-intro/).
+[Learn about using a service to expose your app](https://kubernetes.io/docs/tutorials/kubernetes-basics/expose/expose-intro/
+).
 
 ## Update the deployment
 
@@ -151,7 +154,7 @@ spec:
 ## Use the CLI to deploy Kubernetes objects
 
 With Docker EE, you deploy your Kubernetes objects on the command line by using
-`kubectl`. [Install and set up kubectl](https://v1-8.docs.kubernetes.io/docs/tasks/tools/install-kubectl/).
+`kubectl`. [Install and set up kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/).
 
 Use a client bundle to configure your client tools, like Docker CLI and `kubectl`
 to communicate with UCP instead of the local deployments you might have running.

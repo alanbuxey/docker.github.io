@@ -2,6 +2,7 @@
 description: How to install Docker Machine
 keywords: machine, orchestration, install, installation, docker, documentation, uninstall Docker Machine, uninstall
 title: Install Docker Machine
+hide_from_sitemap: true
 ---
 
 On macOS and Windows, Machine is installed along with other Docker products when
@@ -21,7 +22,7 @@ on GitHub.
 
 2.  Download the Docker Machine binary and extract it to your PATH.
 
-    If you are running on **macOS**:
+    If you are running **macOS**:
 
     ```console
     $ base=https://github.com/docker/machine/releases/download/v{{site.machine_version}} &&
@@ -29,15 +30,16 @@ on GitHub.
       chmod +x /usr/local/bin/docker-machine
     ```
 
-    If you are running on **Linux**:
+    If you are running **Linux**:
 
     ```console
     $ base=https://github.com/docker/machine/releases/download/v{{site.machine_version}} &&
       curl -L $base/docker-machine-$(uname -s)-$(uname -m) >/tmp/docker-machine &&
-      sudo install /tmp/docker-machine /usr/local/bin/docker-machine
+      sudo mv /tmp/docker-machine /usr/local/bin/docker-machine &&
+      chmod +x /usr/local/bin/docker-machine
     ```
 
-    If you are running with **Windows** with [Git BASH](https://git-for-windows.github.io/){: target="_blank" class="_"}:
+    If you are running **Windows** with [Git BASH](https://git-for-windows.github.io/){: target="_blank" class="_"}:
 
     ```console
     $ base=https://github.com/docker/machine/releases/download/v{{site.machine_version}} &&
@@ -109,7 +111,7 @@ To uninstall Docker Machine:
 
    Removing machines is an optional step because there are cases where
    you might want to save and migrate existing machines to a [Docker
-   for Mac](/docker-for-mac/index.md) or [Docker for
+   for Mac](/docker-for-mac/index.md) or [Docker Desktop for
    Windows](/docker-for-windows/index.md) environment, for example.
 
 *  Remove the executable: `rm $(which docker-machine)`

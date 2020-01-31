@@ -4,6 +4,8 @@ description: Learn how to configure your Docker Engine to push and pull images f
 keywords: registry, TLS, certificates
 ---
 
+>{% include enterprise_label_shortform.md %}
+
 By default Docker Engine uses TLS when pushing and pulling images to an
 image registry like Docker Trusted Registry.
 
@@ -29,7 +31,7 @@ In your browser navigate to `https://<dtr-url>/ca` to download the TLS
 certificate used by DTR. Then
 [add that certificate to macOS Keychain](https://support.apple.com/kb/PH20129).
 
-After adding the CA certificate to Keychain, restart Docker for Mac.
+After adding the CA certificate to Keychain, restart Docker Desktop for Mac.
 
 ### Windows
 
@@ -46,7 +48,7 @@ Then, select the following options:
 
 [Learn more about managing TLS certificates](https://technet.microsoft.com/en-us/library/cc754841(v=ws.11).aspx#BKMK_addlocal).
 
-After adding the CA certificate to Windows, restart Docker for Windows.
+After adding the CA certificate to Windows, restart Docker Desktop for Windows.
 
 ### Ubuntu/ Debian
 

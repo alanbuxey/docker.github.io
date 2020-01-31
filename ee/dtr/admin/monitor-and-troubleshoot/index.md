@@ -4,6 +4,8 @@ description: Learn how to monitor your DTR installation.
 keywords: registry, monitor, troubleshoot
 ---
 
+>{% include enterprise_label_shortform.md %}
+
 Docker Trusted Registry is a Dockerized application. To monitor it, you can
 use the same tools and techniques you're already using to monitor other
 containerized applications running on your cluster. One way to monitor
@@ -41,10 +43,10 @@ replicas.
 
 ## Cluster status
 
-The `/api/v0/meta/cluster_status` [endpoint](/reference/dtr/2.5/api/)
-requires administrator credentials, and returns a JSON object for the entire
-cluster as observed by the replica being queried. You can authenticate your
-requests using HTTP basic auth.
+The `/api/v0/meta/cluster_status` [endpoint](/reference/dtr/{{ site.dtr_version
+}}/api/) requires administrator credentials, and returns a JSON object for the
+entire cluster as observed by the replica being queried. You can authenticate
+your requests using HTTP basic auth.
 
 ```bash
 curl -ksL -u <user>:<pass> https://<dtr-domain>/api/v0/meta/cluster_status

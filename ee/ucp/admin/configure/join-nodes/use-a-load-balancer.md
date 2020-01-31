@@ -4,6 +4,8 @@ description: Learn how to set up a load balancer to access the UCP web UI using 
 keywords: UCP, high-availability, load balancer
 ---
 
+>{% include enterprise_label_shortform.md %}
+
 Once you've joined multiple manager nodes for high-availability, you can
 configure your own load balancer to balance user requests across all
 manager nodes.
@@ -33,6 +35,11 @@ or port number.
     * Use one load balancer for UCP, and another for DTR,
     * Use the same load balancer with multiple virtual IPs.
 * Configure your load balancer to expose UCP or DTR on a port other than 443.
+
+> Additional requirements
+>
+> In addition to configuring your load balancer to distinguish between UCP and DTR, configuring a load balancer for DTR has [additional requirements](https://docs.docker.com/ee/dtr/admin/configure/use-a-load-balancer/#load-balance-dtr).
+{: .important}
 
 ## Configuration examples
 
@@ -78,9 +85,11 @@ global
 defaults
         mode    tcp
         option  dontlognull
-        timeout connect 5000
-        timeout client 50000
-        timeout server 50000
+        timeout connect     5s
+        timeout client      50s
+        timeout server      50s
+        timeout tunnel      1h
+        timeout client-fin  50s
 ### frontends
 # Optional HAProxy Stats Page accessible at http://<host-ip>:8181/haproxy?stats
 frontend ucp_stats
